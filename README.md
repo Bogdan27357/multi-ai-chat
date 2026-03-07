@@ -1,51 +1,33 @@
 # Multi-AI Chat
 
-Веб-приложение для одновременного общения с несколькими AI-моделями через **локальную Ollama**. Полностью бесплатно и офлайн — никаких API ключей.
+Веб-приложение для одновременного общения с несколькими AI-моделями. **Все провайдеры бесплатные** — локальная Ollama + бесплатные облачные API.
 
 ## Возможности
 
-- Одновременные запросы к нескольким моделям через Ollama
-- Сравнение ответов разных моделей бок о бок
+- Одновременные запросы к нескольким AI-моделям
+- Сравнение ответов бок о бок
 - Поддержка истории диалога
 - Тёмный интерфейс
-- Полностью локальное — данные не уходят в облако
+- 5 провайдеров, 15+ моделей — всё бесплатно
 
-## Поддерживаемые модели
+## Провайдеры и модели
 
-| Модель | Размер | Описание |
-|--------|--------|----------|
-| **llama3.1:8b** | ~4.7 GB | Meta Llama 3.1 — отличное качество для своего размера |
-| **mistral:7b** | ~4.1 GB | Mistral 7B — быстрая и качественная |
-| **gemma2:9b** | ~5.4 GB | Google Gemma 2 — хороша для диалогов |
-| **qwen2.5:7b** | ~4.4 GB | Alibaba Qwen 2.5 — сильна в коде и логике |
-| **phi3:mini** | ~2.3 GB | Microsoft Phi-3 Mini — компактная и быстрая |
+### Локальный (офлайн)
+
+| Провайдер | Модели | Как получить |
+|-----------|--------|-------------|
+| **Ollama** | llama3.1:8b, mistral:7b, gemma2:9b, qwen2.5:7b, phi3:mini | [ollama.com](https://ollama.com) — установить + `ollama pull model` |
+
+### Облачные (бесплатные)
+
+| Провайдер | Модели | Лимиты | Как получить ключ |
+|-----------|--------|--------|-------------------|
+| **Google Gemini** | gemini-2.0-flash, gemini-1.5-flash, gemini-1.5-pro | 15 RPM, 1M tok/день | [aistudio.google.com](https://aistudio.google.com/) |
+| **Groq** | llama-3.3-70b, mixtral-8x7b, gemma2-9b | 30 RPM, 14400 req/день | [console.groq.com](https://console.groq.com/) |
+| **Cohere** | command-r-plus, command-r | 20 RPM | [dashboard.cohere.com](https://dashboard.cohere.com/) |
+| **HuggingFace** | Mistral-7B-Instruct, Phi-3-mini | Rate-limited | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) |
 
 ## Установка
-
-### 1. Установить Ollama
-
-```bash
-# Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# macOS — скачать с https://ollama.com/download
-# Windows — скачать с https://ollama.com/download
-```
-
-### 2. Скачать модели
-
-```bash
-# Рекомендуемый минимум (выберите 2-3):
-ollama pull llama3.1:8b
-ollama pull mistral:7b
-ollama pull gemma2:9b
-
-# Дополнительные:
-ollama pull qwen2.5:7b
-ollama pull phi3:mini
-```
-
-### 3. Установить приложение
 
 ```bash
 git clone https://github.com/your-username/multi-ai-chat.git
@@ -53,18 +35,25 @@ cd multi-ai-chat
 
 python -m venv .venv
 source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate   # Windows
 
 pip install -r requirements.txt
+
+# Настроить ключи
+cp .env.example .env
+# Отредактируйте .env — добавьте ключи от нужных сервисов
+```
+
+### Для Ollama (опционально)
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.1:8b
+ollama pull mistral:7b
 ```
 
 ## Запуск
 
 ```bash
-# Убедитесь что Ollama запущена:
-ollama serve
-
-# В другом терминале:
 uvicorn app.main:app --reload
 ```
 
