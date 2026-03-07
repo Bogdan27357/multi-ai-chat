@@ -159,9 +159,7 @@ header h1 {
     letter-spacing: 0.5px;
 }
 
-.ai-response-card .model-tag.groq { color: #f55036; }
-.ai-response-card .model-tag.google { color: #4285f4; }
-.ai-response-card .model-tag.cohere { color: #39594d; }
+.ai-response-card .model-tag.ollama { color: #ffffff; }
 
 .ai-response-card .content {
     font-size: 14px;
