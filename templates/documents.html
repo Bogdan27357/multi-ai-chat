@@ -54,9 +54,14 @@
                     <div class="result-card">
                         <h3>Извлечённые данные</h3>
                         <div class="fields-container" id="fieldsContainer"></div>
-                        <button class="btn-primary" onclick="copyAllFields()" style="margin-top: 12px;">
-                            Копировать всё
-                        </button>
+                        <div class="btn-group">
+                            <button class="btn-primary" onclick="copyAllFields()">
+                                Копировать всё
+                            </button>
+                            <button class="btn-generate" onclick="generateQuestionnaire()">
+                                Сгенерировать анкету (DOCX)
+                            </button>
+                        </div>
                     </div>
 
                     <!-- OCR raw text -->

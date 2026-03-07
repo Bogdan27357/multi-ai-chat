@@ -9,6 +9,7 @@ const fieldsContainer = document.getElementById('fieldsContainer');
 const ocrText = document.getElementById('ocrText');
 
 let selectedFile = null;
+let extractedFields = {};
 
 // Click to upload
 uploadArea.addEventListener('click', () => fileInput.click());
@@ -101,6 +102,7 @@ function displayResults(data) {
     // Show extracted fields
     fieldsContainer.innerHTML = '';
     const fields = data.fields;
+    extractedFields = { ...fields };
     const labels = data.field_labels || {};
 
     for (const [key, value] of Object.entries(fields)) {
@@ -159,4 +161,45 @@ function copyAllFields() {
     const btn = event.target;
     btn.textContent = 'Скопировано!';
     setTimeout(() => btn.textContent = 'Копировать всё', 1500);
+}
+
+function getEditedFields() {
+    // Collect current values from inputs (user may have edited them)
+    const fields = {};
+    const inputs = fieldsContainer.querySelectorAll('.field-input');
+    inputs.forEach(input => {
+        const key = input.id.replace('field-', '');
+        fields[key] = input.value;
+    });
+    return fields;
+}
+
+async function generateQuestionnaire() {
+    const fields = getEditedFields();
+
+    try {
+        const resp = await fetch('/generate-questionnaire', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields }),
+        });
+
+        if (!resp.ok) {
+            alert('Ошибка генерации анкеты');
+            return;
+        }
+
+        // Download the file
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `anketa_${fields.surname || 'работник'}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Ошибка: ' + err.message);
+    }
 }

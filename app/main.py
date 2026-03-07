@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from PIL import Image
@@ -16,6 +16,7 @@ load_dotenv()
 
 from app.ocr import DOCUMENT_TYPES, extract_text_from_image, parse_document_with_llm  # noqa: E402
 from app.providers import PROVIDERS  # noqa: E402
+from app.questionnaire import generate_questionnaire  # noqa: E402
 
 app = FastAPI(title="Multi-AI Chat")
 
@@ -136,6 +137,24 @@ async def process_document(
         "field_labels": field_labels,
         "doc_type": doc_type,
     }
+
+
+@app.post("/generate-questionnaire")
+async def gen_questionnaire(request: Request):
+    """Generate a DOCX questionnaire from extracted fields."""
+    data = await request.json()
+    fields = data.get("fields", {})
+
+    buf = generate_questionnaire(fields)
+
+    surname = fields.get("surname", "работник")
+    filename = f"anketa_{surname}.docx"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/providers")

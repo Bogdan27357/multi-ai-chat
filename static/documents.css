@@ -267,3 +267,31 @@
     font-size: 12px;
     color: #666;
 }
+
+.btn-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.btn-group .btn-primary {
+    margin-top: 0;
+    flex: 1;
+}
+
+.btn-generate {
+    flex: 1;
+    background: linear-gradient(135deg, #10a37f, #0d8c6d);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-generate:hover {
+    opacity: 0.9;
+}
