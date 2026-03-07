@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-AI Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Multi-AI Chat</h1>
+            <p class="subtitle">Общайтесь с несколькими ИИ одновременно</p>
+        </header>
+
+        <div class="provider-selector">
+            <h3>Выберите модели:</h3>
+            <div class="providers" id="providers">
+                {% for key, info in providers.items() %}
+                <div class="provider-group {% if not info.configured %}disabled{% endif %}">
+                    <div class="provider-name">
+                        {{ info.name }}
+                        {% if not info.configured %}
+                        <span class="badge">нет ключа</span>
+                        {% endif %}
+                    </div>
+                    {% for model in info.models %}
+                    <label class="model-option">
+                        <input type="checkbox"
+                               value="{{ key }}:{{ model }}"
+                               {% if not info.configured %}disabled{% endif %}>
+                        <span>{{ model }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="chat-messages" id="chatMessages"></div>
+        </div>
+
+        <div class="input-area">
+            <textarea id="messageInput"
+                      placeholder="Введите сообщение..."
+                      rows="2"></textarea>
+            <button id="sendBtn" onclick="sendMessage()">Отправить</button>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
