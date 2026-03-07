@@ -1,10 +1,9 @@
-"""AI provider integrations for Multi-AI Chat."""
+"""AI provider integrations for Multi-AI Chat (free tier only)."""
 
 import os
 from abc import ABC, abstractmethod
 
-import anthropic
-import openai
+import httpx
 import google.generativeai as genai
 
 
@@ -23,58 +22,46 @@ class AIProvider(ABC):
         return True
 
 
-class OpenAIProvider(AIProvider):
-    name = "OpenAI"
-    models = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
+class GroqProvider(AIProvider):
+    """Groq — free tier, OpenAI-compatible API. Models: Llama 3, Mixtral, Gemma."""
+
+    name = "Groq"
+    models = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"]
 
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY", "")
-        self.client = openai.AsyncOpenAI(api_key=api_key) if api_key else None
+        self.api_key = os.getenv("GROQ_API_KEY", "")
 
     def is_configured(self) -> bool:
-        return self.client is not None and bool(os.getenv("OPENAI_API_KEY"))
+        return bool(self.api_key)
 
     async def chat(self, message: str, model: str, history: list[dict]) -> str:
         if not self.is_configured():
-            return "[OpenAI API key not configured]"
+            return "[Groq API key not configured]"
 
         messages = [{"role": h["role"], "content": h["content"]} for h in history]
         messages.append({"role": "user", "content": message})
 
-        response = await self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-        )
-        return response.choices[0].message.content
-
-
-class AnthropicProvider(AIProvider):
-    name = "Anthropic"
-    models = ["claude-sonnet-4-20250514", "claude-haiku-4-5-20251001", "claude-3-5-sonnet-20241022"]
-
-    def __init__(self):
-        api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        self.client = anthropic.AsyncAnthropic(api_key=api_key) if api_key else None
-
-    def is_configured(self) -> bool:
-        return self.client is not None and bool(os.getenv("ANTHROPIC_API_KEY"))
-
-    async def chat(self, message: str, model: str, history: list[dict]) -> str:
-        if not self.is_configured():
-            return "[Anthropic API key not configured]"
-
-        messages = [{"role": h["role"], "content": h["content"]} for h in history]
-        messages.append({"role": "user", "content": message})
-
-        response = await self.client.messages.create(
-            model=model,
-            max_tokens=4096,
-            messages=messages,
-        )
-        return response.content[0].text
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": 4096,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
 
 
 class GoogleProvider(AIProvider):
+    """Google Gemini — free tier (15 RPM, 1M tokens/day)."""
+
     name = "Google"
     models = ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"]
 
@@ -103,9 +90,48 @@ class GoogleProvider(AIProvider):
         return response.text
 
 
+class CohereProvider(AIProvider):
+    """Cohere — free tier (rate-limited). Models: Command R."""
+
+    name = "Cohere"
+    models = ["command-r-plus", "command-r", "command-light"]
+
+    def __init__(self):
+        self.api_key = os.getenv("COHERE_API_KEY", "")
+
+    def is_configured(self) -> bool:
+        return bool(self.api_key)
+
+    async def chat(self, message: str, model: str, history: list[dict]) -> str:
+        if not self.is_configured():
+            return "[Cohere API key not configured]"
+
+        chat_history = []
+        for h in history:
+            role = "USER" if h["role"] == "user" else "CHATBOT"
+            chat_history.append({"role": role, "message": h["content"]})
+
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "https://api.cohere.com/v1/chat",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "message": message,
+                    "chat_history": chat_history,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["text"]
+
+
 # Registry of all providers
 PROVIDERS: dict[str, AIProvider] = {
-    "openai": OpenAIProvider(),
-    "anthropic": AnthropicProvider(),
+    "groq": GroqProvider(),
     "google": GoogleProvider(),
+    "cohere": CohereProvider(),
 }

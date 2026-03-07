@@ -159,9 +159,9 @@ header h1 {
     letter-spacing: 0.5px;
 }
 
-.ai-response-card .model-tag.openai { color: #10a37f; }
-.ai-response-card .model-tag.anthropic { color: #d4a574; }
+.ai-response-card .model-tag.groq { color: #f55036; }
 .ai-response-card .model-tag.google { color: #4285f4; }
+.ai-response-card .model-tag.cohere { color: #39594d; }
 
 .ai-response-card .content {
     font-size: 14px;
