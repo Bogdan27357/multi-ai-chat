@@ -160,10 +160,6 @@ header h1 {
 }
 
 .ai-response-card .model-tag.ollama { color: #ffffff; }
-.ai-response-card .model-tag.google { color: #4285f4; }
-.ai-response-card .model-tag.groq { color: #f55036; }
-.ai-response-card .model-tag.cohere { color: #39594d; }
-.ai-response-card .model-tag.huggingface { color: #ffcc00; }
 
 .ai-response-card .content {
     font-size: 14px;
