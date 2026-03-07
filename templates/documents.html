@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Документы — Multi-AI Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/documents.css">
+</head>
+<body>
+    <div class="app" style="height: auto; min-height: 100vh;">
+        <header>
+            <h1>Распознавание документов</h1>
+            <p class="subtitle">Загрузите скан/фото документа — данные автоматически заполнятся</p>
+            <nav class="nav-links">
+                <a href="/">Чат с ИИ</a>
+                <a href="/documents" class="active">Документы</a>
+            </nav>
+        </header>
+
+        <div class="doc-container">
+            <!-- Upload area -->
+            <div class="upload-section">
+                <div class="doc-type-selector">
+                    <label for="docType">Тип документа:</label>
+                    <select id="docType">
+                        {% for key, name in document_types.items() %}
+                        <option value="{{ key }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">&#128196;</div>
+                    <p>Перетащите изображение сюда или нажмите для выбора</p>
+                    <p class="upload-hint">JPG, PNG — скан или фото документа</p>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+
+                <div class="preview-area" id="previewArea" style="display: none;">
+                    <img id="previewImage" alt="Предпросмотр">
+                    <button class="btn-secondary" onclick="resetUpload()">Загрузить другой</button>
+                </div>
+
+                <button class="btn-primary" id="processBtn" onclick="processDocument()" disabled>
+                    Распознать документ
+                </button>
+            </div>
+
+            <!-- Results area -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-grid">
+                    <!-- Extracted fields -->
+                    <div class="result-card">
+                        <h3>Извлечённые данные</h3>
+                        <div class="fields-container" id="fieldsContainer"></div>
+                        <button class="btn-primary" onclick="copyAllFields()" style="margin-top: 12px;">
+                            Копировать всё
+                        </button>
+                    </div>
+
+                    <!-- OCR raw text -->
+                    <div class="result-card">
+                        <h3>Распознанный текст (OCR)</h3>
+                        <pre class="ocr-text" id="ocrText"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading-section" id="loadingSection" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Распознаём документ...</p>
+                <p class="loading-hint">OCR + анализ через Ollama</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/documents.js"></script>
+</body>
+</html>
