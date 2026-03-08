@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from PIL import Image
@@ -14,6 +14,18 @@ from pydantic import BaseModel
 
 load_dotenv()
 
+from app.database import (  # noqa: E402
+    add_document,
+    create_employee,
+    delete_document,
+    delete_employee,
+    get_employee,
+    get_employee_documents,
+    get_employee_merged_fields,
+    init_db,
+    list_employees,
+    update_employee,
+)
 from app.ocr import DOCUMENT_TYPES, extract_text_from_image, parse_document_with_llm  # noqa: E402
 from app.providers import PROVIDERS  # noqa: E402
 from app.questionnaire import generate_questionnaire  # noqa: E402
@@ -23,6 +35,11 @@ app = FastAPI(title="Multi-AI Chat")
 BASE_DIR = Path(__file__).resolve().parent.parent
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+@app.on_event("startup")
+async def startup():
+    init_db()
 
 
 # ---- Chat models ----
@@ -66,6 +83,24 @@ async def documents_page(request: Request):
     doc_types = {k: v["name"] for k, v in DOCUMENT_TYPES.items()}
     return templates.TemplateResponse("documents.html", {
         "request": request,
+        "document_types": doc_types,
+    })
+
+
+@app.get("/employees", response_class=HTMLResponse)
+async def employees_page(request: Request):
+    return templates.TemplateResponse("employees.html", {"request": request})
+
+
+@app.get("/employees/{employee_id}", response_class=HTMLResponse)
+async def employee_profile_page(request: Request, employee_id: int):
+    emp = get_employee(employee_id)
+    if emp is None:
+        return HTMLResponse("<h1>Сотрудник не найден</h1>", status_code=404)
+    doc_types = {k: v["name"] for k, v in DOCUMENT_TYPES.items()}
+    return templates.TemplateResponse("employee_profile.html", {
+        "request": request,
+        "employee": emp,
         "document_types": doc_types,
     })
 
@@ -158,7 +193,7 @@ async def gen_questionnaire(request: Request):
 
 
 @app.get("/providers")
-async def list_providers():
+async def list_providers_api():
     result = {}
     for key, prov in PROVIDERS.items():
         result[key] = {
@@ -167,3 +202,97 @@ async def list_providers():
             "configured": prov.is_configured(),
         }
     return result
+
+
+# ---- Employees API ----
+
+@app.get("/api/employees")
+async def api_list_employees(search: str = ""):
+    employees = list_employees(search)
+    return {"employees": employees}
+
+
+@app.post("/api/employees")
+async def api_create_employee(request: Request):
+    data = await request.json()
+    emp_id = create_employee(data)
+    return {"id": emp_id}
+
+
+@app.get("/api/employees/{employee_id}")
+async def api_get_employee(employee_id: int):
+    emp = get_employee(employee_id)
+    if emp is None:
+        return JSONResponse({"error": "Сотрудник не найден"}, status_code=404)
+    return emp
+
+
+@app.put("/api/employees/{employee_id}")
+async def api_update_employee(employee_id: int, request: Request):
+    data = await request.json()
+    ok = update_employee(employee_id, data)
+    if not ok:
+        return JSONResponse({"error": "Не удалось обновить"}, status_code=400)
+    return {"ok": True}
+
+
+@app.delete("/api/employees/{employee_id}")
+async def api_delete_employee(employee_id: int):
+    ok = delete_employee(employee_id)
+    if not ok:
+        return JSONResponse({"error": "Сотрудник не найден"}, status_code=404)
+    return {"ok": True}
+
+
+# ---- Employee Documents API ----
+
+@app.get("/api/employees/{employee_id}/documents")
+async def api_get_documents(employee_id: int):
+    docs = get_employee_documents(employee_id)
+    return {"documents": docs}
+
+
+@app.post("/api/employees/{employee_id}/documents")
+async def api_add_document(employee_id: int, request: Request):
+    data = await request.json()
+    doc_id = add_document(
+        employee_id,
+        data.get("doc_type", "auto"),
+        data.get("fields", {}),
+        data.get("ocr_text", ""),
+    )
+    # Auto-update employee base fields from document
+    fields = data.get("fields", {})
+    update_data = {}
+    for key in ("surname", "name", "patronymic", "birth_date", "birth_place", "gender"):
+        if fields.get(key):
+            update_data[key] = fields[key]
+    if update_data:
+        update_employee(employee_id, update_data)
+    return {"id": doc_id}
+
+
+@app.delete("/api/documents/{doc_id}")
+async def api_delete_document(doc_id: int):
+    ok = delete_document(doc_id)
+    if not ok:
+        return JSONResponse({"error": "Документ не найден"}, status_code=404)
+    return {"ok": True}
+
+
+@app.post("/api/employees/{employee_id}/questionnaire")
+async def api_employee_questionnaire(employee_id: int):
+    """Generate a DOCX questionnaire from all employee documents."""
+    fields = get_employee_merged_fields(employee_id)
+    if not fields:
+        return JSONResponse({"error": "Сотрудник не найден"}, status_code=404)
+
+    buf = generate_questionnaire(fields)
+    surname = fields.get("surname", "работник")
+    filename = f"anketa_{surname}.docx"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
